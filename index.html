@@ -433,7 +433,9 @@ const store = {
   get(k,d){ try{ const v=localStorage.getItem(PFX+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
   set(k,v){ try{ localStorage.setItem(PFX+k, JSON.stringify(v)); }catch(e){} }
 };
-const S = Object.assign({reps:3, after:'next', pause:2, rate:1, bism:true, hide:false, fs:2.4, mode:'single', rec:'m', disp:'ar', ascroll:true}, store.get('s',{}));
+const S = Object.assign({reps:1, after:'next', pause:0, rate:1, bism:true, hide:false, fs:2.4, mode:'single', rec:'m', disp:'ar', ascroll:false}, store.get('s',{}));
+if(store.get('sv',0)<2){ Object.assign(S,{reps:1,pause:0,ascroll:false}); store.set('sv',2); }
+S.hide=false;
 let learned = store.get('learned',{});
 const saveS = () => store.set('s',S);
 const sura = n => D.suras.find(x=>x.n===n);
@@ -666,12 +668,12 @@ function showSura(n){
       <div class="srow"><div class="lbl">Wiederholungen</div><div class="chips" data-k="reps"><button class="chip" data-v="1">1×</button><button class="chip" data-v="3">3×</button><button class="chip" data-v="5">5×</button><button class="chip" data-v="0">∞</button></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:800;color:var(--ink2)">eigene Zahl: <input id="repN" type="number" min="1" max="99" inputmode="numeric" style="max-width:90px;flex:none">×</div></div>
       <div class="srow" id="afterRow"><div class="lbl">Nach den Wiederholungen</div><div class="chips" data-k="after"><button class="chip" data-v="stop">Anhalten</button><button class="chip" data-v="next">Nächster Vers</button></div></div>
-      <div class="srow"><div class="lbl">Pause zum Nachsprechen</div><div class="chips" data-k="pause"><button class="chip" data-v="0">keine</button><button class="chip" data-v="2">2 s</button><button class="chip" data-v="4">4 s</button><button class="chip" data-v="7">7 s</button></div></div>
+      <div class="srow"><div class="lbl">Pause zum Nachsprechen</div><div class="chips" data-k="pause"><button class="chip" data-v="0">keine</button><button class="chip" data-v="2">2 s</button><button class="chip" data-v="4">4 s</button><button class="chip" data-v="7">7 s</button></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:800;color:var(--ink2)">eigene Zahl: <input id="pauseN" type="number" min="1" max="30" inputmode="numeric" style="max-width:90px;flex:none">s</div></div>
       <div class="srow"><div class="lbl">Tempo</div><div class="chips" data-k="rate"><button class="chip" data-v="0.75">langsam</button><button class="chip" data-v="0.9">etwas langsamer</button><button class="chip" data-v="1">normal</button></div></div>
       <div class="srow"><div class="lbl">Rezitation</div><div class="chips" data-k="rec">${recAvail(s.n).map(c=>`<button class="chip" data-v="${c}">${RN[c]}</button>`).join('')}</div>${EXT(s.n)&&pkMiss(s.n).length?`<div class="hint">${recAvail(s.n).length?'Weitere Rezitatoren':'Noch kein Rezitator geladen. Rezitatoren'} kannst du hier laden:</div><div class="pkin">${pkMiss(s.n).map(c=>`<div class="pkrow pkrr"><span>${RN[c]}</span>${pkBtn(s.n,c)}</div>`).join('')}</div>`:''}</div>
       <div class="srow"><div class="lbl">Automatisch mitscrollen</div><div class="chips" data-k="ascroll"><button class="chip" data-v="true">an</button><button class="chip" data-v="false">aus</button></div><div class="hint">Die Seite folgt beim Abspielen dem aktuellen Vers.</div></div>
       <div class="srow"><div class="lbl">Anzeige</div><div class="chips" data-k="disp"><button class="chip" data-v="ar">Arabisch</button><button class="chip" data-v="tr">Umschrift</button><button class="chip" data-v="de">Übersetzung</button></div>${s.v.some(x=>!x.d)?'<div class="hint">Für diese Sure gibt es noch keine Übersetzung – es wird dann der arabische Text gezeigt.</div>':''}</div>
-      <div class="srow"><div class="lbl">Text</div><div class="chips" data-k="hide"><button class="chip" data-v="false">zeigen</button><button class="chip" data-v="true">verdecken (Abfragen)</button></div></div>
     </div>
 `;
   $('#home').onclick=()=>{ location.hash=''; };
@@ -682,6 +684,7 @@ function showSura(n){
   });
   const setReps=n=>{ S.reps=n; saveS(); sync(); if(P){P.reps=S.reps; status();} };
   $('#repBtn').onclick=()=>{ setReps(S.reps===0?1:0); toast(S.reps===0?'Vers wird endlos wiederholt 🔁':'Jeder Vers einmal'); };
+  $('#pauseN').onchange=()=>{ const n=Math.max(0,Math.min(30,parseInt($('#pauseN').value)||0)); S.pause=n; store.set("s",S); sync(); };
   $('#repN').onchange=()=>{ const n=Math.max(1,Math.min(99,parseInt($('#repN').value)||1)); setReps(n); };
   $('#play').onclick=togglePlay;
   $('#prev').onclick=()=>jump(-1);
@@ -709,7 +712,7 @@ function sync(){
   app.querySelectorAll('.chips[data-k]').forEach(g=>g.querySelectorAll('.chip').forEach(c=>{
     let v=c.dataset.v; v=v==='true'?true:v==='false'?false:isNaN(+v)?v:+v; c.classList.toggle('on', g.dataset.k==='rec' ? recFor(cur)===v : S[g.dataset.k]===v);
   }));
-  { const b=$('#repBtn'); if(b){ b.textContent=S.reps===0?'∞':S.reps+'×'; b.classList.toggle('on',S.reps===0); } const n=$('#repN'); if(n && document.activeElement!==n) n.value=S.reps>0?S.reps:''; }
+  { const b=$('#repBtn'); if(b){ b.textContent=S.reps===0?'∞':S.reps+'×'; b.classList.toggle('on',S.reps===0); } const n=$('#repN'); if(n && document.activeElement!==n) n.value=S.reps>0?S.reps:''; const pn=$('#pauseN'); if(pn && document.activeElement!==pn) pn.value=[0,2,4,7].includes(S.pause)?'':S.pause; }
   document.body.classList.toggle('hide',!!S.hide);
   document.documentElement.style.setProperty('--fs',S.fs+'rem');
   const r=S.mode==='range';
