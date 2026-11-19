@@ -106,7 +106,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 /* Startseite Liste */
 .mq{background:#fff;border-radius:22px;padding:10px 10px 6px;margin:10px 0 4px}
 .mq svg{display:block;width:100%;height:auto}
-.mq .mqt{text-align:center;font-weight:900;font-size:1.15rem;color:var(--ink);margin:2px 6px 8px;line-height:1.35}
+.mq .mqt{text-align:center;font-weight:900;font-size:min(1.02rem,4.1vw);white-space:nowrap;color:var(--ink);margin:2px 6px 8px;line-height:1.35}
 .mq .df{fill:#FFFAF0}.night .mq .df{fill:#1C2548}
 .mq .ed{fill:none;stroke:#B08A3E;stroke-width:5;stroke-dasharray:18 12;stroke-linecap:round}.night .mq .ed{stroke:#E8C77A}
 .mq .nm{fill:#9A7A3A;font-family:inherit;font-weight:900}.night .mq .nm{fill:#E8C77A}
@@ -603,7 +603,7 @@ function mosque(){
   const leaves=pend.map(k=>{ const bg=big(k);
     return MQR[k].map(([x,y,w,h])=>{ const isB=(x===bg[0]&&y===bg[1]); const fs=Math.max(34,Math.min(w,h)*0.28)/W*100;
       return `<div class="dw" data-k="${k}" style="left:${pc(x,W)};top:${pc(y,H)};width:${pw(w,W)};height:${pw(h,H)}"><div class="glow"></div><div class="leaf"><div class="fr">${isB?`<span style="font-size:calc(var(--mqw)*${fs.toFixed(3)}/100)">${DOOR[k]}</span>`:''}<i class="kn"></i></div><div class="bk"></div></div>${isB?'<b class="sp s1">✦</b><b class="sp s2">✦</b><b class="sp s3">✧</b><b class="sp s4">✦</b>':''}</div>`; }).join(''); }).join('');
-  return `<div class="mq">${!done?'<div class="mqt">Erlerne Juzʾ ʿAmma und entdecke, was sich hinter den Türchen versteckt!</div>':''}<div class="mqw"><svg viewBox="-4 -4 1980 1882" role="img" aria-label="${n} von 38 Türchen offen">
+  return `<div class="mq">${!done?'<div class="mqt">Erlerne Juzʾ ʿAmma und entdecke,<br>was sich hinter den Türchen versteckt!</div>':''}<div class="mqw"><svg viewBox="-4 -4 1980 1882" role="img" aria-label="${n} von 38 Türchen offen">
     <defs><clipPath id="mqa">${rr(seen)}</clipPath>${pend.map(k=>`<clipPath id="mqp${k}">${rr([k])}</clipPath>`).join('')}</defs>
     ${seen.length?'<image href="moschee.webp" width="1972" height="1874" clip-path="url(#mqa)"/>':''}
     ${pend.map(k=>{ const R=MQR[k], x0=Math.min(...R.map(r=>r[0])), y0=Math.min(...R.map(r=>r[1])), x1=Math.max(...R.map(r=>r[0]+r[2])), y1=Math.max(...R.map(r=>r[1]+r[3]));
@@ -964,7 +964,7 @@ function nsVideo(on){
   }catch(e){ wakeInfo='Video-Ersatz Fehler'; }
 }
 const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
-if(!NATIVE && 'serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if(!NATIVE && 'serviceWorker' in navigator && /github\.io$/.test(location.hostname)) { const had=!!navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js').then(r=>{ try{ r.update(); }catch(e){} }).catch(()=>{}); let rl=false; navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!had||rl) return; rl=true; if(!P) location.reload(); }); document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{}); }); }
 const KA=NATIVE&&Capacitor.registerPlugin?Capacitor.registerPlugin('KeepAwake'):null;
 async function keepAwake(on){
   if(KA){ wantAwake=on; try{ on ? await KA.keepAwake() : await KA.allowSleep(); }catch(e){} return; }

@@ -1,4 +1,4 @@
-const V='kb-core-v1', PK='kb-packs-v1';
+const V='kb-core-v2', PK='kb-packs-v1';
 const CORE=['./','index.html','ScheherazadeNew-Regular.woff2','GentiumBookPlus-Regular.woff2','sterne.svg','moschee.webp','icon-192.png','manifest.webmanifest'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(V).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V&&k!==PK).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
@@ -7,7 +7,7 @@ self.addEventListener('fetch',e=>{
   const u=new URL(r.url);
   if(u.origin===location.origin){
     if(r.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('index.html')){
-      e.respondWith(fetch(r).then(res=>{ if(res.ok){ const c=res.clone(); caches.open(V).then(x=>x.put('index.html',c)); } return res; }).catch(()=>caches.match('index.html')));
+      e.respondWith(fetch(r,{cache:'no-cache'}).then(res=>{ if(res.ok){ const c=res.clone(); caches.open(V).then(x=>x.put('index.html',c)); } return res; }).catch(()=>caches.match('index.html')));
       return;
     }
     if(/\/pack\/\w\/00[234]-/.test(u.pathname)) return; // lange Suren landen in der App-Datenbank
