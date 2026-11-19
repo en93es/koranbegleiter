@@ -241,7 +241,7 @@ html.night body{background:#0B1024 url("sterne.svg") repeat}
 .night .awb{background:#1A2244}.night .awb.on{background:#3A3420;color:#F2C14E}
 .pkrow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;min-height:44px;font-weight:800;color:var(--ink)}
 .pkok{color:#1D9E75;font-weight:900}
-.pkr{display:block;font-size:.78rem;font-weight:700;opacity:.7}.pkhint{font-size:.82rem;opacity:.75;margin:8px 2px 2px;line-height:1.35}button.pkdl{border:0;font-family:inherit;cursor:pointer}button.pkdl:disabled{opacity:.6}#status .pkdl{display:block;margin:8px auto 0}.pkrow>span:first-child{text-align:left}.night .pkok{color:#7FD6C2}
+.pkr{display:block;font-size:.78rem;font-weight:700;opacity:.7}.pksh{font-weight:900;color:var(--ink);margin:12px 0 0;text-align:left}.pkrr{min-height:38px;margin:2px 0 2px 10px;font-weight:700}.pkin{margin-top:6px}.pkhint{font-size:.82rem;opacity:.75;margin:8px 2px 2px;line-height:1.35}button.pkdl{border:0;font-family:inherit;cursor:pointer}button.pkdl:disabled{opacity:.6}#status .pkdl{display:block;margin:8px auto 0}#status .pkrow .pkdl{display:inline-block;margin:0}#status .pkin{text-align:left}.pkrow>span:first-child{text-align:left}.night .pkok{color:#7FD6C2}
 .pav{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;font-weight:900;font-size:1.1rem;display:grid;place-items:center;flex:none}
 .night .pav{color:#0B1024}
 .pav.big2{width:64px;height:64px;font-size:1.7rem}
@@ -350,7 +350,9 @@ const RORD=['m','s','a','t','k'];
 const packs={};
 function packIdx(c,s,a){const r=sura(s).rec[c]; for(let i=0;i<r.length;i++) if(a>=r[i][0]&&a<=r[i][1]) return i; return 0;}
 function loadPack(c,s,i){const key=c+':'+s+':'+i; if(!packs[key]) packs[key]=new Promise((res,rej)=>{const e=document.createElement('script'); e.src='pack/'+c+'/'+pad(s)+'-'+i+'.js'; e.onload=()=>res(); e.onerror=()=>{delete packs[key]; rej();}; document.head.appendChild(e);}); return packs[key];}
-function recFor(n){ const r=sura(n).rec; if(r[S.rec]) return S.rec; return RORD.find(c=>r[c]); }
+function recAvail(n){ return RORD.filter(c=>sura(n).rec[c] && (!EXT(n) || hasPk(n,c))); }
+function recFor(n){ const a=recAvail(n); if(a.includes(S.rec)) return S.rec; return a[0] || RORD.find(c=>sura(n).rec[c]); }
+const pkMiss=n=>Object.keys(PKF[n]||{}).filter(c=>!hasPk(n,c)).sort((x,y)=>RORD.indexOf(x)-RORD.indexOf(y));
 function srcOf(c,n,a){ let s=n, v=a; if(a===0 && !(c==='m'||c==='s')){ s=1; v=1; }
   if(EXT(s)) return {c,s,v,ext:true,e:XC[c+':'+s+':'+v]};
   const i=packIdx(c,s,v===0?1:v), key=c+':'+s+':'+i; const e=window.__AU&&window.__AU[key]&&window.__AU[key][v]; return {c,s,i,e}; }
@@ -384,6 +386,7 @@ async function dlPack(s,c,out){
   }catch(e){ out(/Quota/i.test((e&&e.name)||'')?'Nicht genug Speicherplatz auf dem Gerät.':'Download unterbrochen – bitte mit Internet erneut versuchen.'); return false; }
   finally{ DLB=false; }
 }
+function pkWire(root,done){ root.querySelectorAll('.pkdl').forEach(bt=>bt.onclick=async e=>{ e.stopPropagation(); root.querySelectorAll('.pkdl').forEach(x=>x.disabled=true); const ok=await dlPack(+bt.dataset.n,bt.dataset.c,m=>{ bt.textContent=m; }); if(ok) done(); else root.querySelectorAll('.pkdl').forEach(x=>x.disabled=false); }); }
 const pkBtn=(n,c)=>`<button class="pkdl" data-n="${n}" data-c="${c}">⬇️ laden · ${PKF[n][c][1]} MB</button>`;
 function loadExt(c,s,v){ const key=c+':'+s+':'+v; if(XC[key]) return Promise.resolve();
   return idb('au','readonly',o=>o.get(key)).then(r=>{ if(!r) throw new Error('missing'); return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>{ XC[key]=[fr.result.replace(/^data:[^;,]*/,'data:audio/mpeg'),r.t]; res(); }; fr.onerror=()=>rej(fr.error); fr.readAsDataURL(r.b); }); }); }
@@ -540,7 +543,7 @@ function showHome(){
   const row=(s,i)=>{const c=cnt(s.n),tt=s.v.length,d=c===tt;return `
       <div class="row ${d?'done':''}" data-s="${s.n}">
         <span class="nb c${i%6}">${s.n}</span>
-        <div class="rmid"><div class="nm">${s.dmg}${EXT(s.n)&&!hasPk(s.n,recFor(s.n))?' <span class="pkt">📦 Paket fehlt</span>':''}</div><div class="bar"><i style="width:${Math.round(c/tt*100)}%"></i></div></div>
+        <div class="rmid"><div class="nm">${s.dmg}${EXT(s.n)&&!recAvail(s.n).length?' <span class="pkt">📦 Paket fehlt</span>':''}</div><div class="bar"><i style="width:${Math.round(c/tt*100)}%"></i></div></div>
         <div style="text-align:center;width:96px;flex:none"><div class="ar">${s.ar}</div><div class="cnt">${c}/${tt}</div></div>
         <div class="skz" data-s="${s.n}" role="button" aria-label="Ganze Sure als gekonnt markieren"><span class="sck ${d?'on':''}">✓</span></div>
       </div>`;};
@@ -554,7 +557,7 @@ function showHome(){
     ${mosque()}
     <button class="cont" id="cont"><div><div class="k">${last?'Weiter lernen':'Los geht’s!'}</div><div class="v">${lsu.dmg} · Vers ${ls.a}</div></div><span class="pl">▶</span></button>
     <div class="list">${D.suras.filter(JZ).map(row).join('')}</div>
-    ${ex.length?`<div class="sect">Weitere Suren</div><div class="list">${ex.map((s,i)=>row(s,i+2)).join('')}</div>${ex.some(s=>EXT(s.n))?`<div class="pkbox" id="pkBox"><div class="pkh" id="pkH">📦 Soundpakete · ${2+ex.filter(s=>EXT(s.n)&&hasPk(s.n,recFor(s.n))).length} von ${2+ex.filter(s=>EXT(s.n)).length} bereit<span class="ar">▸</span></div><div class="pkbody"><div class="pkrow"><span>al-Fātiḥa</span><span class="pkok">in der App ✓</span></div><div class="pkrow"><span>Juzʾ ʿAmma</span><span class="pkok">in der App ✓</span></div>${ex.filter(s=>EXT(s.n)).map(s=>{ const c=recFor(s.n); return `<div class="pkrow"><span>${PKN[s.n]}<small class="pkr">${RN[c]}</small></span>${hasPk(s.n,c)?'<span class="pkok">geladen ✓</span>':pkBtn(s.n,c)}</div>`; }).join('')}<div class="pkhint">Gilt für den gewählten Rezitator. Wechselst du in der Sure den Rezitator, kannst du dort seine Aufnahmen laden. Am besten im WLAN.</div><div class="pkmsg" id="pkMsg"></div></div></div>`:''}`:''}
+    ${ex.length?`<div class="sect">Weitere Suren</div><div class="list">${ex.map((s,i)=>row(s,i+2)).join('')}</div>${ex.some(s=>EXT(s.n))?`<div class="pkbox" id="pkBox"><div class="pkh" id="pkH">📦 Soundpakete · ${2+ex.filter(s=>EXT(s.n)&&recAvail(s.n).length).length} von ${2+ex.filter(s=>EXT(s.n)).length} bereit<span class="ar">▸</span></div><div class="pkbody"><div class="pkrow"><span>al-Fātiḥa</span><span class="pkok">in der App ✓</span></div><div class="pkrow"><span>Juzʾ ʿAmma</span><span class="pkok">in der App ✓</span></div>${ex.filter(s=>EXT(s.n)).map(s=>`<div class="pksh">${PKN[s.n]}</div>${Object.keys(PKF[s.n]).sort((x,y)=>RORD.indexOf(x)-RORD.indexOf(y)).map(c=>`<div class="pkrow pkrr"><span>${RN[c]}</span>${hasPk(s.n,c)?'<span class="pkok">geladen ✓</span>':pkBtn(s.n,c)}</div>`).join('')}`).join('')}<div class="pkhint">Jeder Rezitator lässt sich einzeln laden – am besten im WLAN. In der Sure kannst du nur geladene Rezitatoren auswählen.</div><div class="pkmsg" id="pkMsg"></div></div></div>`:''}`:''}
     <div class="fbar"><button id="fbBtn">💬 Feedback</button><button id="imBtn">📄 Impressum</button></div>`;
   { const c=recFor(ls.s); need(srcOf(c,ls.s,ls.a)).catch(()=>{}); }
   $('#pBtn').onclick=openProfile;
@@ -665,7 +668,7 @@ function showSura(n){
       <div class="srow" id="afterRow"><div class="lbl">Nach den Wiederholungen</div><div class="chips" data-k="after"><button class="chip" data-v="stop">Anhalten</button><button class="chip" data-v="next">Nächster Vers</button></div></div>
       <div class="srow"><div class="lbl">Pause zum Nachsprechen</div><div class="chips" data-k="pause"><button class="chip" data-v="0">keine</button><button class="chip" data-v="2">2 s</button><button class="chip" data-v="4">4 s</button><button class="chip" data-v="7">7 s</button></div></div>
       <div class="srow"><div class="lbl">Tempo</div><div class="chips" data-k="rate"><button class="chip" data-v="0.75">langsam</button><button class="chip" data-v="0.9">etwas langsamer</button><button class="chip" data-v="1">normal</button></div></div>
-      <div class="srow"><div class="lbl">Rezitation</div><div class="chips" data-k="rec">${Object.keys(s.rec).sort((x,y)=>RORD.indexOf(x)-RORD.indexOf(y)).map(c=>`<button class="chip" data-v="${c}">${RN[c]}</button>`).join('')}</div></div>
+      <div class="srow"><div class="lbl">Rezitation</div><div class="chips" data-k="rec">${recAvail(s.n).map(c=>`<button class="chip" data-v="${c}">${RN[c]}</button>`).join('')}</div>${EXT(s.n)&&pkMiss(s.n).length?`<div class="hint">${recAvail(s.n).length?'Weitere Rezitatoren':'Noch kein Rezitator geladen. Rezitatoren'} kannst du hier laden:</div><div class="pkin">${pkMiss(s.n).map(c=>`<div class="pkrow pkrr"><span>${RN[c]}</span>${pkBtn(s.n,c)}</div>`).join('')}</div>`:''}</div>
       <div class="srow"><div class="lbl">Automatisch mitscrollen</div><div class="chips" data-k="ascroll"><button class="chip" data-v="true">an</button><button class="chip" data-v="false">aus</button></div><div class="hint">Die Seite folgt beim Abspielen dem aktuellen Vers.</div></div>
       <div class="srow"><div class="lbl">Anzeige</div><div class="chips" data-k="disp"><button class="chip" data-v="ar">Arabisch</button><button class="chip" data-v="tr">Umschrift</button><button class="chip" data-v="de">Übersetzung</button></div>${s.v.some(x=>!x.d)?'<div class="hint">Für diese Sure gibt es noch keine Übersetzung – es wird dann der arabische Text gezeigt.</div>':''}</div>
       <div class="srow"><div class="lbl">Text</div><div class="chips" data-k="hide"><button class="chip" data-v="false">zeigen</button><button class="chip" data-v="true">verdecken (Abfragen)</button></div></div>
@@ -686,6 +689,7 @@ function showSura(n){
   $('#know').onclick=toggleKnow;
   $('#card').onclick=e=>{ if(e.target.closest('.know')||e.target.closest('.zb')) return; if(S.hide){ $('#card').classList.toggle('peek'); return; } const rv=e.target.closest('.rv'); if(rv && S.mode==='range'){ const a=+rv.dataset.a; if(P && P.q.some(x=>x.a===a) && P.q.length>1){ P.i=P.q.findIndex(x=>x.a===a); P.paused=false; clearTimeout(timer); $('#say').classList.remove('show'); step(); } else startRange(a); } };
   $('#setbtn').onclick=()=>{ const o=$('#settings').classList.toggle('open'); store.set('setOpen',o); };
+  { const pi=app.querySelector('.settings .pkin'); if(pi) pkWire(pi,()=>{ const keep=sel; showSura(cur); sel=keep; renderVerse(keep); }); }
   app.querySelectorAll('.settings .chips[data-k]').forEach(g=>g.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
     let v=c.dataset.v; v=v==='true'?true:v==='false'?false:isNaN(+v)?v:+v;
     if(g.dataset.k==='mode' && v==='range' && S.mode!=='range'){ const a0=sel||1, tt=sura(cur).v.length; $('#rf').value=a0; $('#rt').value=Math.min(tt,a0+2); }
@@ -999,7 +1003,7 @@ function step(){
   renderVerse(it.a);
   if(it.a>0) store.set('last',{s:cur,a:it.a});
   const r=srcOf(recFor(cur),cur,it.a);
-  if(!r.e){ const my=P; $('#status').textContent='Lädt …'; need(r).then(()=>{ if(P===my) step(); }).catch(()=>{ if(P!==my) return; const q0=my; P=null; const st=$('#status'); if(r.ext && !hasPk(r.s,r.c) && PKF[r.s]&&PKF[r.s][r.c]){ st.innerHTML=`Für ${RN[r.c]} fehlen hier noch die Aufnahmen. ${pkBtn(r.s,r.c)}`; const bt=st.querySelector('.pkdl'); bt.onclick=async()=>{ bt.disabled=true; const ok=await dlPack(r.s,r.c,m=>{ bt.textContent=m; }); if(ok){ st.textContent=''; run(q0.q,q0.cont,q0.i); } else bt.disabled=false; }; } else st.textContent='Audio konnte nicht geladen werden.'; }); return; }
+  if(!r.e){ const my=P; $('#status').textContent='Lädt …'; need(r).then(()=>{ if(P===my) step(); }).catch(()=>{ if(P!==my) return; const q0=my; P=null; const st=$('#status'); if(r.ext && !recAvail(r.s).length && PKF[r.s]){ st.innerHTML=`Für diese Sure ist noch kein Rezitator geladen. Wähle einen aus:<div class="pkin">${pkMiss(r.s).map(c=>`<div class="pkrow pkrr"><span>${RN[c]}</span>${pkBtn(r.s,c)}</div>`).join('')}</div>`; pkWire(st,()=>{ st.textContent=''; showSura(cur); run(q0.q,q0.cont,q0.i); }); } else st.textContent='Audio konnte nicht geladen werden.'; }); return; }
   { const nx=P.q[P.i+1]; const na = nx ? nx.a : (P.cont && it.a>0 && it.a<sura(cur).v.length ? it.a+1 : 0); if(na){ const r2=srcOf(r.c,cur,na); const pre=()=>{ const r3=srcOf(r.c,cur,na); if(r3.e && S.pause===0){ const nu=r3.e[0], j=it.j; soundEnd(nu).then(t=>{ if(P && P.q[P.i]===it) auxPrep(nu, j?0:Math.max(t.st, (r3.e[1]&&r3.e[1].length)?r3.e[1][0][0]/1000-0.12:0, 0)); }).catch(()=>{}); } }; if(!r2.e) need(r2).then(pre).catch(()=>{}); else pre(); } }
   const u=r.e[0]; times=r.e[1];
   P.ef=false; P.endT=0;
